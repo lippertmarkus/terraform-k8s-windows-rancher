@@ -1,0 +1,42 @@
+Vagrant.require_version ">= 1.7.4"
+
+$script_install_docker_linux = <<-SCRIPT
+mount --make-rshared /
+apk add docker
+rc-update add docker boot
+service docker start
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.synced_folder '.', '/vagrant', disabled: true
+
+  config.vm.define "rancher" do |rancher|
+    rancher.vm.box = "generic/alpine312"
+    rancher.vm.box_version = "3.0.28"
+    rancher.vm.provision "shell", inline: $script_install_docker_linux
+  end
+
+  config.vm.define "linux" do |linux|
+    linux.vm.box = "generic/alpine312"
+    linux.vm.box_version = "3.0.28"
+    linux.vm.provision "shell", inline: $script_install_docker_linux
+  end
+
+  config.vm.define "windows" do |windows|
+    windows.vm.box = "StefanScherer/windows_2019_docker"
+    windows.vm.communicator = "winrm"
+
+    windows.vm.provider "hyperv" do |v|
+      v.memory = 8192
+    end
+  end
+
+  config.vm.provider "hyperv" do |v|
+    v.cpus = 2
+    v.memory = 4096
+    v.maxmemory = 32768
+  end
+
+  config.vm.network "public_network", bridge: ENV['HYPERV_SWITCH']
+
+end
